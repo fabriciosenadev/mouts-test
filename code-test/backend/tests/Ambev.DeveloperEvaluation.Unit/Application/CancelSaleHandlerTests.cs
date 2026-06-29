@@ -3,6 +3,7 @@ using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
 using AutoMapper;
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class CancelSaleHandlerTests
     {
         _mapper = Substitute.For<IMapper>();
         _saleRepository = Substitute.For<ISaleRepository>();
-        _handler = new CancelSaleHandler(_mapper, _saleRepository);
+        _handler = new CancelSaleHandler(_mapper, _saleRepository, NullLogger<CancelSaleHandler>.Instance);
     }
 
     [Fact(DisplayName = "Given existing sale When cancelling Then sale and items are cancelled")]

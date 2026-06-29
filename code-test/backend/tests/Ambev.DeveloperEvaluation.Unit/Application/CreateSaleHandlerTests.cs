@@ -5,6 +5,7 @@ using Ambev.DeveloperEvaluation.Unit.Application.TestData;
 using AutoMapper;
 using FluentAssertions;
 using FluentValidation;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Xunit;
 
@@ -20,7 +21,7 @@ public class CreateSaleHandlerTests
     {
         _mapper = Substitute.For<IMapper>();
         _saleRepository = Substitute.For<ISaleRepository>();
-        _handler = new CreateSaleHandler(_mapper, _saleRepository);
+        _handler = new CreateSaleHandler(_mapper, _saleRepository, NullLogger<CreateSaleHandler>.Instance);
     }
 
     [Fact(DisplayName = "Given valid sale data When creating sale Then returns success response")]
