@@ -165,12 +165,12 @@ public class SaleTests
         sale.Cancel();
 
         var action = () => sale.Update(
+            "SALE-UPDATED",
             DateTime.UtcNow,
             Guid.NewGuid(),
             "Another Customer",
             Guid.NewGuid(),
-            "Another Branch",
-            []);
+            "Another Branch");
 
         Assert.Throws<DomainException>(action);
     }

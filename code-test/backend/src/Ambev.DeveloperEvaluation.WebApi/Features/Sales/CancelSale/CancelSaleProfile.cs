@@ -11,6 +11,6 @@ public class CancelSaleProfile : Profile
             .ConstructUsing(id => new CancelSaleCommand(id));
 
         CreateMap<CancelSaleResult, CancelSaleResponse>();
-        CreateMap<CancelSaleItemResult, CancelSaleItemResponse>();
+        CreateMap<CancelSaleItemResult, CancelSaleLineResponse>();
     }
 }

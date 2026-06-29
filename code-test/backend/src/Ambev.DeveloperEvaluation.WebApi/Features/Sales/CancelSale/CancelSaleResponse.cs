@@ -11,10 +11,10 @@ public class CancelSaleResponse
     public string BranchName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
     public bool Cancelled { get; set; }
-    public List<CancelSaleItemResponse> Items { get; set; } = [];
+    public List<CancelSaleLineResponse> Items { get; set; } = [];
 }
 
-public class CancelSaleItemResponse
+public class CancelSaleLineResponse
 {
     public Guid Id { get; set; }
     public Guid ProductId { get; set; }
