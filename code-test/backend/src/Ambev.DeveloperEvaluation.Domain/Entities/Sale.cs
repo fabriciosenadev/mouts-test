@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Domain.Common;
+using Ambev.DeveloperEvaluation.Domain.Exceptions;
 
 namespace Ambev.DeveloperEvaluation.Domain.Entities;
 
@@ -11,7 +12,7 @@ public class Sale : BaseEntity
     public Guid BranchId { get; set; }
     public string BranchName { get; set; } = string.Empty;
     public decimal TotalAmount { get; private set; }
-    public bool Cancelled { get; set; }
+    public bool Cancelled { get; private set; }
     public List<SaleItem> Items { get; set; } = [];
 
     public void RecalculateTotals()
@@ -24,5 +25,64 @@ public class Sale : BaseEntity
         TotalAmount = Items
             .Where(item => !item.Cancelled)
             .Sum(item => item.TotalAmount);
+    }
+
+    public void Update(
+        DateTime saleDate,
+        Guid customerId,
+        string customerName,
+        Guid branchId,
+        string branchName,
+        List<SaleItem> items)
+    {
+        EnsureNotCancelled();
+
+        SaleDate = saleDate;
+        CustomerId = customerId;
+        CustomerName = customerName;
+        BranchId = branchId;
+        BranchName = branchName;
+        Items = items;
+
+        RecalculateTotals();
+    }
+
+    public void Cancel()
+    {
+        if (Cancelled)
+        {
+            return;
+        }
+
+        Cancelled = true;
+
+        foreach (var item in Items)
+        {
+            item.Cancel();
+        }
+
+        RecalculateTotals();
+    }
+
+    public void CancelItem(Guid itemId)
+    {
+        EnsureNotCancelled();
+
+        var item = Items.FirstOrDefault(currentItem => currentItem.Id == itemId);
+        if (item is null)
+        {
+            throw new DomainException($"Sale item with ID {itemId} not found");
+        }
+
+        item.Cancel();
+        RecalculateTotals();
+    }
+
+    private void EnsureNotCancelled()
+    {
+        if (Cancelled)
+        {
+            throw new DomainException("Cancelled sales cannot be changed");
+        }
     }
 }

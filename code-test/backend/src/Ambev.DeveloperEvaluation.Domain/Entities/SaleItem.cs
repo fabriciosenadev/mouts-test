@@ -13,19 +13,32 @@ public class SaleItem : BaseEntity
     public decimal DiscountPercentage { get; private set; }
     public decimal DiscountAmount { get; private set; }
     public decimal TotalAmount { get; private set; }
-    public bool Cancelled { get; set; }
+    public bool Cancelled { get; private set; }
     public Sale? Sale { get; set; }
 
     public void ApplyPricingRules()
     {
+        if (Cancelled)
+        {
+            DiscountPercentage = 0m;
+            DiscountAmount = 0m;
+            TotalAmount = 0m;
+            return;
+        }
+
         if (Quantity > 20)
         {
             throw new ValidationException("It's not possible to sell above 20 identical items");
         }
 
-        if (Quantity < 0)
+        if (Quantity <= 0)
         {
             throw new ValidationException("Quantity must be greater than zero");
+        }
+
+        if (UnitPrice <= 0)
+        {
+            throw new ValidationException("Unit price must be greater than zero");
         }
 
         DiscountPercentage = Quantity switch
@@ -38,5 +51,11 @@ public class SaleItem : BaseEntity
         var grossAmount = Quantity * UnitPrice;
         DiscountAmount = Math.Round(grossAmount * DiscountPercentage, 2, MidpointRounding.AwayFromZero);
         TotalAmount = grossAmount - DiscountAmount;
+    }
+
+    public void Cancel()
+    {
+        Cancelled = true;
+        ApplyPricingRules();
     }
 }
