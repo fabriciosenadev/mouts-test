@@ -1,4 +1,5 @@
 using Ambev.DeveloperEvaluation.Domain.Common;
+using Ambev.DeveloperEvaluation.Domain.Exceptions;
 using FluentValidation;
 
 namespace Ambev.DeveloperEvaluation.Domain.Entities;
@@ -57,5 +58,17 @@ public class SaleItem : BaseEntity
     {
         Cancelled = true;
         ApplyPricingRules();
+    }
+
+    public void Update(string productName, int quantity, decimal unitPrice)
+    {
+        if (Cancelled)
+        {
+            throw new DomainException("Cancelled items cannot be changed");
+        }
+
+        ProductName = productName;
+        Quantity = quantity;
+        UnitPrice = unitPrice;
     }
 }

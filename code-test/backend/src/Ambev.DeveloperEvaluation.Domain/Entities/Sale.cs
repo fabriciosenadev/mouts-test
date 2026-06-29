@@ -28,21 +28,21 @@ public class Sale : BaseEntity
     }
 
     public void Update(
+        string saleNumber,
         DateTime saleDate,
         Guid customerId,
         string customerName,
         Guid branchId,
-        string branchName,
-        List<SaleItem> items)
+        string branchName)
     {
         EnsureNotCancelled();
 
+        SaleNumber = saleNumber;
         SaleDate = saleDate;
         CustomerId = customerId;
         CustomerName = customerName;
         BranchId = branchId;
         BranchName = branchName;
-        Items = items;
 
         RecalculateTotals();
     }
@@ -71,7 +71,7 @@ public class Sale : BaseEntity
         var item = Items.FirstOrDefault(currentItem => currentItem.Id == itemId);
         if (item is null)
         {
-            throw new DomainException($"Sale item with ID {itemId} not found");
+            throw new KeyNotFoundException($"Sale item with ID {itemId} not found");
         }
 
         item.Cancel();
