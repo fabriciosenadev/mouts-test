@@ -33,6 +33,10 @@ public class ValidationExceptionMiddleware
         {
             await HandleKnownExceptionAsync(context, StatusCodes.Status400BadRequest, ex.Message);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            await HandleKnownExceptionAsync(context, StatusCodes.Status401Unauthorized, ex.Message);
+        }
     }
 
     private static Task HandleValidationExceptionAsync(HttpContext context, ValidationException exception)
