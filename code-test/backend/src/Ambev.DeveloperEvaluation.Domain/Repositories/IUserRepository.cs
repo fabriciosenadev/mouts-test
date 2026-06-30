@@ -32,6 +32,14 @@ public interface IUserRepository
     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Searches users using the provided filter and pagination parameters.
+    /// </summary>
+    /// <param name="filter">The filter criteria.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The filtered items and total count.</returns>
+    Task<(List<User> Items, int TotalCount)> SearchAsync(UserFilter filter, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Deletes a user from the repository
     /// </summary>
     /// <param name="id">The unique identifier of the user to delete</param>
