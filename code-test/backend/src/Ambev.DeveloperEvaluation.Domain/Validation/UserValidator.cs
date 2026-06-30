@@ -17,9 +17,7 @@ public class UserValidator : AbstractValidator<User>
         
         RuleFor(user => user.Password).SetValidator(new PasswordValidator());
         
-        RuleFor(user => user.Phone)
-            .Matches(@"^\+[1-9]\d{10,14}$")
-            .WithMessage("Phone number must start with '+' followed by 11-15 digits.");
+        RuleFor(user => user.Phone).SetValidator(new PhoneValidator());
         
         RuleFor(user => user.Status)
             .NotEqual(UserStatus.Unknown)

@@ -1,5 +1,6 @@
 using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Repositories;
+using Ambev.DeveloperEvaluation.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ambev.DeveloperEvaluation.ORM.Repositories;
@@ -30,8 +31,10 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
+        var normalizedEmail = new EmailAddress(email).Value;
+
         return await _context.Users
-            .FirstOrDefaultAsync(user => user.Email == email, cancellationToken);
+            .FirstOrDefaultAsync(user => user.Email == normalizedEmail, cancellationToken);
     }
 
     public async Task<(List<User> Items, int TotalCount)> SearchAsync(UserFilter filter, CancellationToken cancellationToken = default)
@@ -45,7 +48,8 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(filter.Email))
         {
-            query = query.Where(user => EF.Functions.ILike(user.Email, $"%{filter.Email}%"));
+            var normalizedEmail = new EmailAddress(filter.Email).Value;
+            query = query.Where(user => EF.Functions.ILike(user.Email, $"%{normalizedEmail}%"));
         }
 
         if (filter.Status.HasValue)

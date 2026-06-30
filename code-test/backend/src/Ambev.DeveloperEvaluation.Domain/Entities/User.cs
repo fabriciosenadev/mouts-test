@@ -3,6 +3,8 @@ using Ambev.DeveloperEvaluation.Common.Validation;
 using Ambev.DeveloperEvaluation.Domain.Common;
 using Ambev.DeveloperEvaluation.Domain.Enums;
 using Ambev.DeveloperEvaluation.Domain.Validation;
+using Ambev.DeveloperEvaluation.Domain.ValueObjects;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Ambev.DeveloperEvaluation.Domain.Entities;
 
@@ -29,7 +31,7 @@ public class User : BaseEntity, IUser
     /// Gets the user's phone number.
     /// Must be a valid phone number format following the pattern (XX) XXXXX-XXXX.
     /// </summary>
-    public string Phone { get; set; } = string.Empty ;
+    public string Phone { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets the hashed password for authentication.
@@ -42,7 +44,7 @@ public class User : BaseEntity, IUser
     /// Gets the user's role in the system.
     /// Determines the user's permissions and access levels.
     /// </summary>
-    public UserRole Role { get;     set; }
+    public UserRole Role { get; set; }
 
     /// <summary>
     /// Gets the user's current status.
@@ -59,6 +61,12 @@ public class User : BaseEntity, IUser
     /// Gets the date and time of the last update to the user's information.
     /// </summary>
     public DateTime? UpdatedAt { get; set; }
+
+    [NotMapped]
+    public EmailAddress EmailAddress => new(Email);
+
+    [NotMapped]
+    public PhoneNumber PhoneNumber => new(Phone);
 
     /// <summary>
     /// Gets the unique identifier of the user.
@@ -84,6 +92,20 @@ public class User : BaseEntity, IUser
     public User()
     {
         CreatedAt = DateTime.UtcNow;
+    }
+
+    public static User Create(
+        string username,
+        string password,
+        EmailAddress email,
+        PhoneNumber phone,
+        UserRole role,
+        UserStatus status)
+    {
+        var user = new User();
+        user.ApplyProfile(username, email, phone, role, status);
+        user.Password = password;
+        return user;
     }
 
     /// <summary>
@@ -142,5 +164,41 @@ public class User : BaseEntity, IUser
     {
         Status = UserStatus.Suspended;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateProfile(
+        string username,
+        EmailAddress email,
+        PhoneNumber phone,
+        UserRole role,
+        UserStatus status)
+    {
+        ApplyProfile(username, email, phone, role, status);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetPassword(string passwordHash)
+    {
+        if (string.IsNullOrWhiteSpace(passwordHash))
+        {
+            throw new ArgumentException("Password hash cannot be empty.", nameof(passwordHash));
+        }
+
+        Password = passwordHash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    private void ApplyProfile(
+        string username,
+        EmailAddress email,
+        PhoneNumber phone,
+        UserRole role,
+        UserStatus status)
+    {
+        Username = username.Trim();
+        Email = email.Value;
+        Phone = phone.Value;
+        Role = role;
+        Status = status;
     }
 }

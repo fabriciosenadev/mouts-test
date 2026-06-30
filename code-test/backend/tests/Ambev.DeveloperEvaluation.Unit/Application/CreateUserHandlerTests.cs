@@ -10,9 +10,6 @@ using Xunit;
 
 namespace Ambev.DeveloperEvaluation.Unit.Application;
 
-/// <summary>
-/// Contains unit tests for the <see cref="CreateUserHandler"/> class.
-/// </summary>
 public class CreateUserHandlerTests
 {
     private readonly IUserRepository _userRepository;
@@ -20,10 +17,6 @@ public class CreateUserHandlerTests
     private readonly IPasswordHasher _passwordHasher;
     private readonly CreateUserHandler _handler;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="CreateUserHandlerTests"/> class.
-    /// Sets up the test dependencies and creates fake data generators.
-    /// </summary>
     public CreateUserHandlerTests()
     {
         _userRepository = Substitute.For<IUserRepository>();
@@ -32,132 +25,76 @@ public class CreateUserHandlerTests
         _handler = new CreateUserHandler(_userRepository, _mapper, _passwordHasher);
     }
 
-    /// <summary>
-    /// Tests that a valid user creation request is handled successfully.
-    /// </summary>
     [Fact(DisplayName = "Given valid user data When creating user Then returns success response")]
     public async Task Handle_ValidRequest_ReturnsSuccessResponse()
     {
-        // Given
         var command = CreateUserHandlerTestData.GenerateValidCommand();
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Username = command.Username,
-            Password = command.Password,
-            Email = command.Email,
-            Phone = command.Phone,
-            Status = command.Status,
-            Role = command.Role
-        };
+        var persistedUser = CreateUserHandlerTestData.GenerateValidUserFrom(command, "hashedPassword");
+        persistedUser.Id = Guid.NewGuid();
 
         var result = new CreateUserResult
         {
-            Id = user.Id,
+            Id = persistedUser.Id,
+            Name = persistedUser.Username,
+            Email = persistedUser.Email,
+            Phone = persistedUser.Phone,
+            Role = persistedUser.Role,
+            Status = persistedUser.Status
         };
 
+        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(persistedUser);
+        _mapper.Map<CreateUserResult>(persistedUser).Returns(result);
+        _passwordHasher.HashPassword(command.Password).Returns("hashedPassword");
 
-        _mapper.Map<User>(command).Returns(user);
-        _mapper.Map<CreateUserResult>(user).Returns(result);
-
-        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
-            .Returns(user);
-        _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
-
-        // When
         var createUserResult = await _handler.Handle(command, CancellationToken.None);
 
-        // Then
         createUserResult.Should().NotBeNull();
-        createUserResult.Id.Should().Be(user.Id);
+        createUserResult.Id.Should().Be(persistedUser.Id);
+        createUserResult.Name.Should().Be(persistedUser.Username);
         await _userRepository.Received(1).CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
     }
 
-    /// <summary>
-    /// Tests that an invalid user creation request throws a validation exception.
-    /// </summary>
     [Fact(DisplayName = "Given invalid user data When creating user Then throws validation exception")]
     public async Task Handle_InvalidRequest_ThrowsValidationException()
     {
-        // Given
-        var command = new CreateUserCommand(); // Empty command will fail validation
+        var command = new CreateUserCommand();
 
-        // When
         var act = () => _handler.Handle(command, CancellationToken.None);
 
-        // Then
         await act.Should().ThrowAsync<FluentValidation.ValidationException>();
     }
 
-    /// <summary>
-    /// Tests that the password is hashed before saving the user.
-    /// </summary>
     [Fact(DisplayName = "Given user creation request When handling Then password is hashed")]
     public async Task Handle_ValidRequest_HashesPassword()
     {
-        // Given
         var command = CreateUserHandlerTestData.GenerateValidCommand();
-        var originalPassword = command.Password;
         const string hashedPassword = "h@shedPassw0rd";
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Username = command.Username,
-            Password = command.Password,
-            Email = command.Email,
-            Phone = command.Phone,
-            Status = command.Status,
-            Role = command.Role
-        };
+        var persistedUser = CreateUserHandlerTestData.GenerateValidUserFrom(command, hashedPassword);
 
-        _mapper.Map<User>(command).Returns(user);
-        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
-            .Returns(user);
-        _passwordHasher.HashPassword(originalPassword).Returns(hashedPassword);
+        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>()).Returns(persistedUser);
+        _mapper.Map<CreateUserResult>(persistedUser).Returns(new CreateUserResult { Id = persistedUser.Id });
+        _passwordHasher.HashPassword(command.Password).Returns(hashedPassword);
 
-        // When
         await _handler.Handle(command, CancellationToken.None);
 
-        // Then
-        _passwordHasher.Received(1).HashPassword(originalPassword);
+        _passwordHasher.Received(1).HashPassword(command.Password);
         await _userRepository.Received(1).CreateAsync(
-            Arg.Is<User>(u => u.Password == hashedPassword),
+            Arg.Is<User>(user =>
+                user.Password == hashedPassword &&
+                user.Email == command.Email.ToLowerInvariant().Trim()),
             Arg.Any<CancellationToken>());
     }
 
-    /// <summary>
-    /// Tests that the mapper is called with the correct command.
-    /// </summary>
-    [Fact(DisplayName = "Given valid command When handling Then maps command to user entity")]
-    public async Task Handle_ValidRequest_MapsCommandToUser()
+    [Fact(DisplayName = "Given duplicated email When creating user Then throws invalid operation exception")]
+    public async Task Handle_DuplicatedEmail_ThrowsInvalidOperationException()
     {
-        // Given
         var command = CreateUserHandlerTestData.GenerateValidCommand();
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Username = command.Username,
-            Password = command.Password,
-            Email = command.Email,
-            Phone = command.Phone,
-            Status = command.Status,
-            Role = command.Role
-        };
 
-        _mapper.Map<User>(command).Returns(user);
-        _userRepository.CreateAsync(Arg.Any<User>(), Arg.Any<CancellationToken>())
-            .Returns(user);
-        _passwordHasher.HashPassword(Arg.Any<string>()).Returns("hashedPassword");
+        _userRepository.GetByEmailAsync(command.Email, Arg.Any<CancellationToken>())
+            .Returns(CreateUserHandlerTestData.GenerateValidUserFrom(command, "existing"));
 
-        // When
-        await _handler.Handle(command, CancellationToken.None);
+        var act = () => _handler.Handle(command, CancellationToken.None);
 
-        // Then
-        _mapper.Received(1).Map<User>(Arg.Is<CreateUserCommand>(c =>
-            c.Username == command.Username &&
-            c.Email == command.Email &&
-            c.Phone == command.Phone &&
-            c.Status == command.Status &&
-            c.Role == command.Role));
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 }

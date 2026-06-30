@@ -1,5 +1,7 @@
 using Ambev.DeveloperEvaluation.Application.Users.CreateUser;
+using Ambev.DeveloperEvaluation.Domain.Entities;
 using Ambev.DeveloperEvaluation.Domain.Enums;
+using Ambev.DeveloperEvaluation.Domain.ValueObjects;
 using Bogus;
 
 namespace Ambev.DeveloperEvaluation.Unit.Domain;
@@ -38,5 +40,16 @@ public static class CreateUserHandlerTestData
     public static CreateUserCommand GenerateValidCommand()
     {
         return createUserHandlerFaker.Generate();
+    }
+
+    public static User GenerateValidUserFrom(CreateUserCommand command, string passwordHash)
+    {
+        return User.Create(
+            command.Username,
+            passwordHash,
+            new EmailAddress(command.Email),
+            new PhoneNumber(command.Phone),
+            command.Role,
+            command.Status);
     }
 }
